@@ -66,8 +66,8 @@ There are already other projects that do the same thing. However, I found that
 they were just "proofs of concept", and not really maintained anymore. Also they
 still use the old chrome.socket API. Until now, 2015-2-20, I found:
 
-- https://github.com/GoogleChrome/net-chromeify and forked from/based on that https://github.com/iceddev/node-chromify - latest commit 26 Nov 2013
-- https://github.com/tilgovi/chromify - shims process.binding - latest commit 26 Jan 2013
+- [GoogleChrome/net-chromeify](https://github.com/GoogleChrome/net-chromeify) and forked from/based on that [iceddev/node-chromify](https://github.com/iceddev/node-chromify) - latest commit 26 Nov 2013
+- [tilgovi/chromify](https://github.com/tilgovi/chromify) - shims process.binding - latest commit 26 Jan 2013
 
 This is intended to be a robust, efficient and compatible implementation. For example, it
 pauses the socket if the incoming buffer is full, unlike the others. However,
