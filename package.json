@@ -1,0 +1,23 @@
+{
+  "name": "net-chrome-apps",
+  "version": "0.0.0",
+  "description": "Implementation of Nodes net using Chrome Apps APIs",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jscissr/net-chrome-apps.git"
+  },
+  "main": "net.js",
+  "keywords": [
+    "node",
+    "chrome",
+    "chrome apps",
+    "net",
+    "tcp",
+    "sockets"
+  ],
+  "author": {
+    "name": "Jan Schär",
+    "email": "jscissr@gmail.com"
+  },
+  "license": "MIT"
+}
