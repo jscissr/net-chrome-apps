@@ -233,7 +233,7 @@ chrome.sockets.tcp.onReceive.addListener(cbChrome(onReceive));
 chrome.sockets.tcp.onReceiveError.addListener(cbChrome(onReceiveError));
 
 
-var debug = console.log.bind(console); // util.debuglog('net');
+var debug = util.debuglog('net');
 
 function isPipeName(s) {
   return util.isString(s) && toNumber(s) === false;
