@@ -185,7 +185,7 @@ function onReceive(info) {
     return;
   }
 
-  timers._unrefActive(self);
+  self._unrefTimer();
 
   debug('onread', info.data.byteLength);
   self.bytesRead += info.data.byteLength;
@@ -302,6 +302,7 @@ function Socket(options) {
   this.destroyed = false;
   this._hadError = false;
   this._socketId = null; // a number > 0
+  this._parent = null;
   this._host = null;
   this._port = null;
 
@@ -354,6 +355,13 @@ function Socket(options) {
   }
 }
 util.inherits(Socket, stream.Duplex);
+
+
+Socket.prototype._unrefTimer = function unrefTimer() {
+  for (var s = this; s !== null; s = s._parent)
+    timers._unrefActive(s);
+};
+
 
 // the user has called .end(), and all the bytes have been
 // sent out to the other side.
@@ -615,7 +623,8 @@ Socket.prototype._destroy = function(exception, cb) {
   self._peername = {};
   self._sockname = {};
 
-  timers.unenroll(this);
+  for (var s = this; s !== null; s = s._parent)
+    timers.unenroll(s);
 
   debug('close');
   if (this._socketId) {
@@ -701,7 +710,7 @@ Socket.prototype._write = function(chunk, encoding, cb) {
     return;
   }
 
-  timers._unrefActive(this);
+  this._unrefTimer();
 
   if (!this._socketId) {
     this._destroy(new Error('This socket is closed.'), cb);
@@ -725,7 +734,7 @@ Socket.prototype._write = function(chunk, encoding, cb) {
     if (sendInfo.resultCode !== 0) {
       self.destroy(errnoException(sendInfo.resultCode, 'write'), cb);
     } else {
-      timers._unrefActive(self);
+      self._unrefTimer();
       // The Chrome API buffers 32 KiB before stopping to call the callback
       // until a TCP ACK is received.
       cb();
@@ -784,17 +793,24 @@ Socket.prototype.connect = function(options, cb) {
     self.once('connect', cb);
   }
 
-  timers._unrefActive(this);
+  this._unrefTimer();
 
   self._connecting = true;
   self.writable = true;
 
   this._host = options.host || 'localhost';
-  this._port = options.port | 0;
+  this._port = 0;
 
-  if (this._port <= 0 || this._port > 65535)
-    throw new RangeError('Port should be > 0 and < 65536: ' + this._port);
+  if (typeof options.port === 'number')
+    this._port = options.port;
+  else if (typeof options.port === 'string')
+    this._port = options.port.trim() === '' ? -1 : +options.port;
+  else if (options.port !== undefined)
+    throw new TypeError('port should be a number or string: ' + options.port);
 
+  if (this._port < 0 || this._port > 65535 || isNaN(this._port))
+    throw new RangeError('port should be >= 0 and < 65536: ' +
+                         options.port);
 
   createSocket(function(socketId) {
     if (!self._connecting || self._socketId) {
@@ -850,7 +866,7 @@ function afterConnect(self, result, socketId) {
 
       self.readable = true;
       self.writable = true;
-      timers._unrefActive(self);
+      self._unrefTimer();
 
       self.emit('connect');
 
