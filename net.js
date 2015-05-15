@@ -934,14 +934,14 @@ function toNumber(x) { return (x = Number(x)) >= 0 ? x : false; }
 
 // exports._createServerHandle not supported
 
-function afterListen(self, result, socketId) {
+function afterListen(self, result) {
   debug('afterListen');
 
   assert.ok(self._connecting);
   self._connecting = false;
 
   if (result === 0) {
-    chrome.sockets.tcpServer.getInfo(socketId, cbChrome(function(info) {
+    chrome.sockets.tcpServer.getInfo(self._socketId, cbChrome(function(info) {
       self._address = {
         port: info.localPort,
         family: info.localAddress && info.localAddress.indexOf(':') !== -1 ?
@@ -954,8 +954,10 @@ function afterListen(self, result, socketId) {
   } else {
     var ex = errnoException(result, 'listen');
     self.emit('error', ex);
-    closeServer(socketId);
-    this._socketId = null;
+    if (self._socketId) {
+      closeServer(self._socketId);
+      self._socketId = null;
+    }
   }
 }
 
@@ -1007,7 +1009,7 @@ Server.prototype._listen2 = function(address, port, backlog) {
               isAny = false;
               return listen();
             }
-            afterListen(self, result, socketId);
+            afterListen(self, result);
           }));
     }
     listen();
@@ -1077,8 +1079,9 @@ Server.prototype.address = function() {
 
 
 Server.prototype.getConnections = function(cb) {
+  var self = this;
   process.nextTick(function() {
-    cb(null, this._connections);
+    cb(null, self._connections);
   });
 };
 
