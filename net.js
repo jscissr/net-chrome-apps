@@ -45,17 +45,6 @@ function errnoException(err, syscall) {
 function noop() {}
 
 
-function cbChrome(func) {
-  return function() {
-    try {
-      return func.apply(this, arguments);
-    } catch (e) {
-      console.error(e); // Errors are logged on the background page otherwise
-    }
-  };
-}
-
-
 var idToServerInstance = {},
     idToSocketInstance = {};
 
@@ -89,14 +78,14 @@ function createSocket(cb) {
 
     // keepAlive and noDelay are reset by the underlying API when calling connect
     chrome.sockets.tcp.setPaused(socketId, true);
-    chrome.sockets.tcp.update(socketId, properties, cbChrome(function() {
+    chrome.sockets.tcp.update(socketId, properties, function() {
       cb(socketId);
-    }));
+    });
   } else {
-    chrome.sockets.tcp.create(cbChrome(function(createInfo) {
+    chrome.sockets.tcp.create(function(createInfo) {
       chrome.sockets.tcp.setPaused(createInfo.socketId, true);
       cb(createInfo.socketId);
-    }));
+    });
   }
 }
 
@@ -105,9 +94,9 @@ function closeSocket(socketId) {
   if (socketIdPool.length >= exports.socketPoolSize) {
     chrome.sockets.tcp.close(socketId);
   } else {
-    chrome.sockets.tcp.disconnect(socketId, cbChrome(function() {
+    chrome.sockets.tcp.disconnect(socketId, function() {
       socketIdPool.push(socketId);
-    }));
+    });
   }
 }
 
@@ -119,13 +108,13 @@ function createServer(cb) {
       name: ''
     };
     chrome.sockets.tcpServer.setPaused(socketId, false);
-    chrome.sockets.tcpServer.update(socketId, properties, cbChrome(function() {
+    chrome.sockets.tcpServer.update(socketId, properties, function() {
       cb(socketId);
-    }));
+    });
   } else {
-    chrome.sockets.tcpServer.create(cbChrome(function(createInfo) {
+    chrome.sockets.tcpServer.create(function(createInfo) {
       cb(createInfo.socketId);
-    }));
+    });
   }
 }
 
@@ -134,9 +123,9 @@ function closeServer(socketId) {
   if (serverIdPool.length >= exports.serverPoolSize) {
     chrome.sockets.tcpServer.close(socketId);
   } else {
-    chrome.sockets.tcpServer.disconnect(socketId, cbChrome(function() {
+    chrome.sockets.tcpServer.disconnect(socketId, function() {
       serverIdPool.push(socketId);
-    }));
+    });
   }
 }
 
@@ -227,10 +216,10 @@ function onReceiveError(info) {
   }
 }
 
-chrome.sockets.tcpServer.onAccept.addListener(cbChrome(onAccept));
-chrome.sockets.tcpServer.onAcceptError.addListener(cbChrome(onAcceptError));
-chrome.sockets.tcp.onReceive.addListener(cbChrome(onReceive));
-chrome.sockets.tcp.onReceiveError.addListener(cbChrome(onReceiveError));
+chrome.sockets.tcpServer.onAccept.addListener(onAccept);
+chrome.sockets.tcpServer.onAcceptError.addListener(onAcceptError);
+chrome.sockets.tcp.onReceive.addListener(onReceive);
+chrome.sockets.tcp.onReceiveError.addListener(onReceiveError);
 
 
 var debug = util.debuglog('net');
@@ -489,12 +478,12 @@ Socket.prototype.setNoDelay = function(enable) {
     // backwards compatibility: assume true when `enable` is omitted
     chrome.sockets.tcp.setNoDelay(this._socketId,
         util.isUndefined(enable) ? true : !!enable,
-        cbChrome(function(result) {
+        function(result) {
           if (result !== 0) {
             debug('Error: setNoDelay failed');
             // TODO: error
           }
-        }));
+        });
   }
 };
 
@@ -502,12 +491,12 @@ Socket.prototype.setNoDelay = function(enable) {
 Socket.prototype.setKeepAlive = function(setting, msecs) {
   if (this._socketId) {
     chrome.sockets.tcp.setKeepAlive(this._socketId, !!setting, ~~(msecs / 1000),
-        cbChrome(function(result) {
+        function(result) {
           if (result !== 0) {
             debug('Error: setKeepAlive failed');
             // TODO: error
           }
-        }));
+        });
   }
 };
 
@@ -725,7 +714,7 @@ Socket.prototype._write = function(chunk, encoding, cb) {
     arrayBuffer = chunk.buffer.slice(chunk.byteOffset,
         chunk.byteOffset + chunk.byteLength);
   }
-  chrome.sockets.tcp.send(this._socketId, arrayBuffer, cbChrome(function(sendInfo){
+  chrome.sockets.tcp.send(this._socketId, arrayBuffer, function(sendInfo){
     // callback may come after call to destroy.
     if (self.destroyed) {
       debug('afterWrite destroyed');
@@ -739,7 +728,7 @@ Socket.prototype._write = function(chunk, encoding, cb) {
       // until a TCP ACK is received.
       cb();
     }
-  }));
+  });
 
   this._bytesDispatched += arrayBuffer.byteLength;
 };
@@ -820,9 +809,9 @@ Socket.prototype.connect = function(options, cb) {
     self._socketId = socketId;
     idToSocketInstance[socketId] = self;
     chrome.sockets.tcp.connect(socketId, self._host, self._port,
-        cbChrome(function(result) {
+        function(result) {
           afterConnect(self, result, socketId);
-        }));
+        });
   });
   initSocket(this);
   return this;
@@ -842,7 +831,7 @@ function afterConnect(self, result, socketId) {
   debug('afterConnect');
 
   if (result === 0) {
-    chrome.sockets.tcp.getInfo(socketId, cbChrome(function(info) {
+    chrome.sockets.tcp.getInfo(socketId, function(info) {
       // callback may come after call to destroy
       if (self._socketId !== socketId) {
         closeSocket(socketId);
@@ -874,7 +863,7 @@ function afterConnect(self, result, socketId) {
       // this doesn't actually consume any bytes, because len=0.
       if (!(self.isPaused && self.isPaused()))
         self.read(0);
-    }));
+    });
   } else {
     self._destroy(errnoException(result, 'connect'));
   }
@@ -941,7 +930,7 @@ function afterListen(self, result) {
   self._connecting = false;
 
   if (result === 0) {
-    chrome.sockets.tcpServer.getInfo(self._socketId, cbChrome(function(info) {
+    chrome.sockets.tcpServer.getInfo(self._socketId, function(info) {
       self._address = {
         port: info.localPort,
         family: info.localAddress && info.localAddress.indexOf(':') !== -1 ?
@@ -950,7 +939,7 @@ function afterListen(self, result) {
       };
 
       self.emit('listening');
-    }));
+    });
   } else {
     var ex = errnoException(result, 'listen');
     self.emit('error', ex);
@@ -998,7 +987,7 @@ Server.prototype._listen2 = function(address, port, backlog) {
 
     function listen(){
       chrome.sockets.tcpServer.listen(socketId, self._host, self._port,
-          self._backlog, cbChrome(function(result) {
+          self._backlog, function(result) {
             // callback may come after call to close
             if (self._socketId !== socketId) {
               closeServer(socketId);
@@ -1010,7 +999,7 @@ Server.prototype._listen2 = function(address, port, backlog) {
               return listen();
             }
             afterListen(self, result);
-          }));
+          });
     }
     listen();
   });
