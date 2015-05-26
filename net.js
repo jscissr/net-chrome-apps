@@ -717,10 +717,12 @@ Socket.prototype._write = function(chunk, encoding, cb) {
   chrome.sockets.tcp.send(this._socketId, arrayBuffer, function(sendInfo){
     // callback may come after call to destroy.
     if (self.destroyed) {
+      chrome.runtime.lastError; // This prevents "Unchecked runtime.lastError" errors
       debug('afterWrite destroyed');
       return;
     }
     if (sendInfo.resultCode !== 0) {
+      chrome.runtime.lastError; // Don't remove, this actually does something! (Call a getter function)
       self.destroy(errnoException(sendInfo.resultCode, 'write'), cb);
     } else {
       self._unrefTimer();
