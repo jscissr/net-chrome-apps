@@ -1,7 +1,7 @@
 # net-chrome-apps
 Use the net module of node in [Chrome Apps](https://developer.chrome.com/apps)!
 This module is a wrapper around the [Chrome Apps TCP Sockets API](https://developer.chrome.com/apps/sockets_tcp).
-It was built by taking the lib/net.js file of Node code v0.12.3 and modifying it
+It was built by taking the lib/net.js file of Node code v0.12.4 and modifying it
 to use the Chrome API.
 
 ## install / usage with browserify
