@@ -1,20 +1,11 @@
 {
   "name": "net-chrome-apps",
-  "version": "0.0.2",
-  "description": "Implementation of Nodes net using Chrome Apps APIs",
+  "version": "0.0.3",
+  "description": "Use chrome-net instead, this module is no longer maintained.",
   "repository": {
     "type": "git",
     "url": "git://github.com/jscissr/net-chrome-apps.git"
   },
-  "main": "net.js",
-  "keywords": [
-    "node",
-    "chrome",
-    "chrome apps",
-    "net",
-    "tcp",
-    "sockets"
-  ],
   "author": {
     "name": "Jan Schär",
     "email": "jscissr@gmail.com"
